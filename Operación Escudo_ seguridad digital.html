@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Operación Escudo: seguridad digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2EEFF; --surface:#FFFFFF; --surface2:#E9E3FF; --line:#CFC5F2; --text:#1C1440; --muted:#5E5690;
+  --accent:#5B45E0; --accent-ink:#FFFFFF; --safe:#0E8F7A; --safebg:#DDF6F0; --threat:#D7264A; --threatbg:#FDE3E8; --warn:#B86E00; --warnbg:#FFF1DC;
+  --grid:rgba(91,69,224,.07);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#130B29; --surface:#1E1440; --surface2:#2A1E57; --line:#3D2F72; --text:#EEE9FF; --muted:#A99FD6;
+    --accent:#9D8CFF; --accent-ink:#130B29; --safe:#3FE0C5; --safebg:rgba(63,224,197,.13); --threat:#FF5A78; --threatbg:rgba(255,90,120,.14); --warn:#FFB84D; --warnbg:rgba(255,184,77,.13);
+    --grid:rgba(157,140,255,.06);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#130B29; --surface:#1E1440; --surface2:#2A1E57; --line:#3D2F72; --text:#EEE9FF; --muted:#A99FD6;
+  --accent:#9D8CFF; --accent-ink:#130B29; --safe:#3FE0C5; --safebg:rgba(63,224,197,.13); --threat:#FF5A78; --threatbg:rgba(255,90,120,.14); --warn:#FFB84D; --warnbg:rgba(255,184,77,.13);
+  --grid:rgba(157,140,255,.06);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;color:var(--text);font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:17px;line-height:1.5;
+  background-color:var(--bg);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:32px 32px}
+h1,h2,h3,.hud,.disp{font-family:'Chakra Petch','IBM Plex Sans',sans-serif}
+.mono,code{font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace}
+code{font-size:.9em;background:var(--surface2);padding:.05em .35em;border-radius:4px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,[role="button"]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.btn{border:0;background:var(--accent);color:var(--accent-ink);font-weight:600;padding:.75em 1.4em;border-radius:10px;font-family:'Chakra Petch',sans-serif;font-size:1.05rem;letter-spacing:.01em}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--text);border:2px solid var(--line)}
+
+/* ---------- Intro ---------- */
+.intro{max-width:980px;margin:0 auto;padding:40px 22px 60px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:40px;align-items:center}
+@media (max-width:820px){.intro{grid-template-columns:minmax(0,1fr)}.radarwrap{order:-1}}
+.intro h1{font-size:clamp(2.6rem,7vw,4.4rem);line-height:1;margin:0 0 16px;font-weight:700}
+.intro h1 small{display:block;font-size:.34em;font-weight:600;color:var(--accent);margin-bottom:10px}
+.lead{font-size:1.12rem;color:var(--muted);margin:0 0 22px;max-width:52ch}
+.rules{margin:0 0 26px;padding-left:1.2em;max-width:58ch}
+.rules li{margin-bottom:.4em}
+.form{display:grid;gap:12px;max-width:440px}
+.form label{font-weight:600;display:grid;gap:6px}
+.form input{font:inherit;padding:.65em .8em;border:2px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text)}
+.err{color:var(--threat);margin:0;min-height:1.5em}
+
+.radarwrap{display:grid;place-items:center}
+.radar{position:relative;width:min(340px,78vw);aspect-ratio:1;border-radius:50%;
+  background:repeating-radial-gradient(circle,transparent 0 17%,var(--line) 17% calc(17% + 1.5px)),var(--surface);
+  border:2px solid var(--line);overflow:hidden;box-shadow:0 0 0 10px var(--surface2)}
+.radar::before{content:"";position:absolute;inset:0;background:linear-gradient(var(--line),var(--line)) center/1.5px 100% no-repeat,linear-gradient(var(--line),var(--line)) center/100% 1.5px no-repeat}
+.radar::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,color-mix(in srgb,var(--safe) 55%,transparent),transparent 70deg);animation:sweep 4s linear infinite}
+@keyframes sweep{to{transform:rotate(360deg)}}
+.blip{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--threat);box-shadow:0 0 0 6px var(--threatbg);z-index:1}
+.blip.s{background:var(--safe);box-shadow:0 0 0 6px var(--safebg)}
+.radar .core{position:absolute;inset:0;display:grid;place-items:center;z-index:2;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:1.05rem;color:var(--text)}
+.radar .core span{background:var(--surface);padding:.3em .8em;border-radius:8px;border:2px solid var(--line)}
+
+/* ---------- HUD ---------- */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:2px solid var(--line)}
+.bar-in{max-width:900px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:16px}
+.ring{width:52px;height:52px;flex:none}
+.ring circle{fill:none;stroke-width:6}
+.ring .bgc{stroke:var(--line)}
+.ring .fgc{stroke:var(--safe);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .6s,stroke .6s}
+.ring text{font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:15px;fill:var(--text)}
+.who{flex:1;min-width:0;line-height:1.25}
+.who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who span{color:var(--muted);font-size:.9rem}
+.hstat{text-align:right;line-height:1.15}
+.hstat b{font-family:'Chakra Petch',sans-serif;font-size:1.35rem;display:block;font-variant-numeric:tabular-nums}
+.hstat span{color:var(--muted);font-size:.8rem}
+.track{max-width:900px;margin:0 auto;padding:0 20px 10px;display:flex;gap:3px}
+.seg{flex:1;height:7px;border-radius:2px;background:var(--line)}
+.seg.okf{background:var(--safe)} .seg.okp{background:var(--warn)} .seg.fail{background:var(--threat)} .seg.cur{background:var(--accent)}
+
+.wrap{max-width:900px;margin:0 auto;padding:22px 20px 70px}
+.mission{background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:24px}
+.mtopline{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.sector{margin:0;color:var(--accent);font-weight:600;font-family:'Chakra Petch',sans-serif;font-size:1.05rem}
+.mn{margin:0;color:var(--muted)}
+.cd{margin:0;text-align:right;display:grid;line-height:1.1}
+.cd b{font-family:'Chakra Petch',sans-serif;font-size:1.6rem;font-variant-numeric:tabular-nums}
+.cd span{color:var(--muted);font-size:.8rem}
+.cd.low b{color:var(--threat)}
+.cdbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 18px}
+.cdbar i{display:block;height:100%;background:var(--accent);transition:width 1s linear}
+.cdbar.low i{background:var(--threat)}
+.mission h2{font-size:1.4rem;line-height:1.25;margin:0 0 18px;font-weight:600}
+
+.opts{display:grid;gap:10px;margin-bottom:18px}
+.opt{display:block;width:100%;text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:.8em 1em}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.sel{border-color:var(--accent);background:var(--surface2)}
+.opt.right{border-color:var(--safe);background:var(--safebg)}
+.opt.wrong{border-color:var(--threat);background:var(--threatbg)}
+.opt:disabled{cursor:default}
+.opt.url{font-family:'IBM Plex Mono',monospace;font-size:.95rem;word-break:break-all}
+
+/* Correo */
+.mail{background:#FFFFFF;color:#1F2330;border-radius:14px;overflow:hidden;border:1px solid #D9DCE6;margin:0 0 18px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:16px}
+.mtop{display:flex;justify-content:space-between;padding:8px 16px;background:#F1F3F8;color:#5B6275;font-size:.85rem;border-bottom:1px solid #E3E6EE}
+.mhead{display:flex;gap:12px;align-items:center;padding:14px 16px 4px}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;flex:none}
+.mname{font-weight:700}
+.maddr{color:#5B6275;font-size:.92rem;word-break:break-all}
+.msubj{font-size:1.15rem;margin:6px 16px 4px;font-family:inherit;font-weight:700;display:inline-block}
+.mbody{padding:4px 16px 18px}
+.mbody p{margin:.5em 0}
+.mlink{display:inline-grid;gap:4px;margin:.6em 0}
+.mbtn{display:inline-block;background:#2457D6;color:#fff;font-weight:700;padding:.5em 1em;border-radius:6px;justify-self:start}
+.murl{font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:#5B6275;word-break:break-all}
+.matt{display:inline-flex;gap:8px;align-items:center;border:1px solid #D9DCE6;border-radius:8px;padding:.4em .8em;margin-top:.4em;font-size:.92rem}
+.fl{border-radius:6px;outline:2px solid transparent;outline-offset:2px;transition:outline-color .15s,background .15s}
+.fl.on{cursor:pointer;outline:2px dashed #B7BCCB}
+.fl.on:hover{outline-color:#2457D6}
+.fl.pick{outline:3px solid #D7264A;background:#FFE3E8}
+.fl.isflag{outline:3px solid #D7264A;background:#FFE3E8}
+.fl.falsepick{outline:3px dashed #B86E00;background:#FFF1DC}
+.decide{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.dbtn{border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:16px;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:1.15rem;display:grid;gap:4px;justify-items:center}
+.dbtn span{font-size:1.8rem;line-height:1}
+.dbtn.safe:hover{border-color:var(--safe);background:var(--safebg)}
+.dbtn.threat:hover{border-color:var(--threat);background:var(--threatbg)}
+.stage{margin:0 0 12px;padding:10px 14px;border-radius:10px;background:var(--threatbg);border-left:4px solid var(--threat)}
+.notes{margin:8px 0 0;padding-left:1.2em}
+.notes li{margin-bottom:.3em}
+
+/* Chat */
+.chat{border-radius:16px;overflow:hidden;margin:0 0 18px;border:2px solid var(--line);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.chead{display:flex;gap:10px;align-items:center;padding:10px 14px;background:#2B2D42;color:#fff}
+.chead .av{width:36px;height:36px;font-size:.9rem}
+.chead small{display:block;color:#C9CBE0;font-size:.8rem}
+.cbody{background:#E4E8F2;padding:14px;display:grid;gap:8px;justify-items:start}
+.bub{background:#fff;color:#1F2330;padding:.55em .8em;border-radius:4px 14px 14px 14px;max-width:88%;box-shadow:0 1px 0 rgba(0,0,0,.06)}
+.bub time{display:block;text-align:right;color:#8A90A5;font-size:.72rem;margin-top:2px}
+.callcard{display:grid;justify-items:center;gap:6px;padding:26px 14px;background:#2B2D42;color:#fff;text-align:center}
+.callcard .av{width:64px;height:64px;font-size:1.4rem;background:#5B45E0}
+.callcard p{margin:0;max-width:40ch}
+.callcard .quote{background:rgba(255,255,255,.1);padding:.6em .9em;border-radius:10px;font-style:italic}
+
+/* Orden */
+.olabel{font-weight:600;margin:0 0 6px}
+.olist{list-style:none;margin:0 0 16px;padding:10px;min-height:56px;border:2px dashed var(--line);border-radius:12px;display:grid;gap:6px;counter-reset:n}
+.olist li{counter-increment:n}
+.oitem{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface2);border:2px solid transparent;border-radius:10px;padding:.55em .9em;font-family:'IBM Plex Mono',monospace}
+.olist .oitem::before{content:counter(n);font-family:'Chakra Petch',sans-serif;font-weight:700;color:var(--accent);min-width:1.2em}
+.oitem:hover:not(:disabled){border-color:var(--accent)}
+.pool{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.pool .oitem{width:auto}
+.empty{color:var(--muted);margin:6px 4px}
+.scale{display:flex;justify-content:space-between;color:var(--muted);font-size:.85rem;margin:-10px 4px 14px}
+
+/* Emparejar */
+.match{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:12px;margin-bottom:18px}
+.mcol{display:grid;gap:8px;align-content:start}
+.mcol p{margin:0 0 2px;color:var(--muted);font-size:.9rem}
+.mi{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:10px;padding:.6em .8em;min-height:3.2em}
+.mi.att{font-family:'Chakra Petch',sans-serif;font-weight:700}
+.mi.sel{border-color:var(--accent);background:var(--surface2)}
+.mi .dot{width:14px;height:14px;border-radius:50%;flex:none;border:2px solid var(--line)}
+.mi.bad{border-color:var(--threat)}
+.mi.good{border-color:var(--safe)}
+
+/* Contraseña */
+.pwin{display:block;width:100%;font-family:'IBM Plex Mono',monospace;font-size:1.15rem;padding:.7em .9em;border:2px solid var(--line);border-radius:12px;background:var(--surface);color:var(--text);margin-bottom:12px}
+.meter{height:12px;border-radius:6px;background:var(--line);overflow:hidden;margin-bottom:6px}
+.meter i{display:block;height:100%;transition:width .3s,background .3s}
+.mlabel{margin:0 0 12px;font-weight:600;font-family:'Chakra Petch',sans-serif}
+.crit{list-style:none;padding:0;margin:0 0 18px;display:grid;gap:6px}
+.crit li{display:flex;gap:10px;align-items:center}
+.crit li::before{content:"✕";width:1.6em;height:1.6em;border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:700;background:var(--threatbg);color:var(--threat);flex:none}
+.crit li.ok::before{content:"✓";background:var(--safebg);color:var(--safe)}
+.warnnote{margin:0 0 14px;padding:10px 14px;border-radius:10px;background:var(--warnbg);border-left:4px solid var(--warn)}
+
+.fb{border-left:4px solid;padding:10px 14px;border-radius:0 10px 10px 0;margin:0 0 16px}
+.fb.ok{border-color:var(--safe);background:var(--safebg)}
+.fb.bad{border-color:var(--threat);background:var(--threatbg)}
+.fb.info{border-color:var(--accent);background:var(--surface2)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tries{margin:0 0 0 auto;color:var(--muted)}
+.dots{letter-spacing:.15em;color:var(--accent)}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--threat);color:#fff;padding:12px 18px;border-radius:10px;max-width:90vw;z-index:20;font-weight:600}
+
+/* ---------- Informe ---------- */
+.res{max-width:780px;margin:0 auto;padding:30px 20px 60px}
+.card{background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:26px;position:relative;overflow:hidden}
+.card .kicker{margin:0;color:var(--accent);font-family:'Chakra Petch',sans-serif;font-weight:600}
+.card h1{margin:2px 0 0;font-size:clamp(1.7rem,4.5vw,2.3rem);line-height:1.1}
+.card .grp{margin:4px 0 18px;color:var(--muted)}
+.gradebox{display:flex;align-items:center;gap:18px;margin:0 0 20px;padding:16px 20px;border-radius:14px;background:var(--surface2)}
+.grade{font-family:'Chakra Petch',sans-serif;font-size:clamp(3.4rem,12vw,5rem);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.grade small{font-size:.3em;color:var(--muted);font-weight:600}
+.rank{margin-left:auto;text-align:right}
+.rank b{display:block;font-family:'Chakra Petch',sans-serif;font-size:1.25rem}
+.rank span{color:var(--muted);font-size:.9rem}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px;margin:0 0 20px}
+@media (max-width:540px){.facts{grid-template-columns:minmax(0,1fr)}}
+.facts div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.facts dt{color:var(--muted)} .facts dd{margin:0;font-weight:600;text-align:right}
+.facts .warn dd{color:var(--threat)}
+.lv{display:grid;gap:8px;margin:0 0 20px}
+.lvrow{display:grid;grid-template-columns:minmax(0,1fr) 130px 3.5em;gap:10px;align-items:center;font-size:.95rem}
+.lm{height:10px;background:var(--line);border-radius:5px;overflow:hidden}
+.lm i{display:block;height:100%;background:var(--safe)}
+.lvrow b{text-align:right}
+.card h3{margin:0 0 4px;font-size:1.05rem}
+.tleg{margin:0 0 10px;color:var(--muted);font-size:.85rem}
+.times{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;margin:0 0 20px}
+.tchip{display:flex;justify-content:space-between;gap:6px;border:2px solid var(--line);border-left-width:6px;border-radius:6px;padding:2px 7px;font-size:.85rem;font-variant-numeric:tabular-nums}
+.tchip.okf{border-left-color:var(--safe)} .tchip.okp{border-left-color:var(--warn)} .tchip.fail{border-left-color:var(--threat)}
+.shot{margin:0;padding:12px 14px;border-radius:10px;border:2px dashed var(--accent);font-weight:600}
+.after{margin-top:22px}
+
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+"use strict";
+
+var LEVELS=["Conceptos clave","Bandeja de entrada","Contraseñas y cuentas","Arsenal del atacante","Enlaces y redes","Situaciones reales"];
+var PICK=[5,5,4,2,4,4];
+var LIMIT={mc:45,url:50,chat:60,call:60,inbox:120,order:60,create:150,match:120};
+var TRIES={mc:2,url:2,chat:2,call:2,order:2,match:2,create:3,inbox:1};
+var SC={mc:[10,4],url:[10,4],chat:[10,4],call:[10,4],order:[10,4],match:[10,6],create:[10,6,3],inbox:[10]};
+var PAIRC=["#5B45E0","#0E8F7A","#D7264A","#B86E00","#2F80ED"];
+
+var BANK=[
+/* ===== Sector 1: Conceptos clave ===== */
+{lvl:0,type:"mc",q:"¿Qué es el malware?",
+ opts:["Cualquier programa diseñado para dañar, espiar o tomar control de un dispositivo","Un antivirus gratuito que viene con el celular","Una falla física del disco duro","Un tipo de red Wi-Fi pública"],ans:0,
+ explain:"Malware viene de «malicious software»: incluye virus, troyanos, ransomware, spyware y más."},
+{lvl:0,type:"mc",q:"¿Qué es la ingeniería social?",
+ opts:["Engañar a una persona para que entregue información o haga algo que no debería","Programar redes sociales","Diseñar la red de computadoras de una escuela","Hacer encuestas sobre el uso de internet"],ans:0,
+ explain:"Los atacantes saben que es más fácil engañar a una persona que romper un sistema. Por eso usan miedo, prisa o curiosidad."},
+{lvl:0,type:"mc",q:"La verificación en dos pasos (2FA) sirve para…",
+ opts:["Que aunque alguien robe tu contraseña, necesite un segundo factor (código, app o llave) para entrar","Tener dos contraseñas iguales por si olvidas una","Iniciar sesión el doble de rápido","Compartir tu cuenta con otra persona de forma segura"],ans:0,
+ explain:"Con 2FA, la contraseña sola ya no basta. Es una de las protecciones más efectivas que puedes activar hoy."},
+{lvl:0,type:"mc",q:"Ves un candado y «https» en la barra del navegador. ¿Qué significa?",
+ opts:["Que la conexión entre tu navegador y el sitio está cifrada","Que el sitio es 100 % confiable y no puede ser falso","Que el sitio no tiene virus","Que el gobierno revisó y aprobó la página"],ans:0,
+ explain:"El candado sólo dice que nadie puede leer lo que viaja entre tú y el sitio. Muchos sitios de phishing también tienen candado: igual hay que revisar la dirección."},
+{lvl:0,type:"mc",q:"¿Qué significa cifrar información?",
+ opts:["Transformarla para que sólo quien tenga la clave pueda leerla","Borrarla de forma permanente","Comprimirla para que pese menos","Subirla a la nube"],ans:0,
+ explain:"El cifrado convierte los datos en algo ilegible sin la clave. Por eso un mensaje cifrado robado no le sirve al atacante."},
+{lvl:0,type:"mc",q:"¿Por qué es importante instalar las actualizaciones de tu sistema y tus apps?",
+ opts:["Corrigen fallas de seguridad que los atacantes ya conocen y aprovechan","Sólo cambian los colores y los íconos","Liberan espacio en el dispositivo","Hacen que el internet sea más rápido"],ans:0,
+ explain:"Cuando se descubre una falla, se publica la corrección. Quien no actualiza queda expuesto a un ataque que ya es conocido."},
+{lvl:0,type:"mc",q:"¿Qué es tu huella digital en internet?",
+ opts:["El rastro de información que dejas con lo que publicas, buscas, compartes y aceptas","El sensor de huella de tu celular","Un virus que copia tus datos","El historial que se borra al cerrar el navegador"],ans:0,
+ explain:"Fotos, comentarios, ubicaciones y permisos forman tu huella digital. Mucho de eso es difícil de borrar después."},
+
+/* ===== Sector 2: Bandeja de entrada ===== */
+{lvl:1,type:"inbox",phish:true,q:"Revisa este correo. ¿Es legítimo o es phishing?",
+ mail:{name:"Soporte BancoNova",addr:"soporte@bancon0va-seguridad.com",color:"#1B4D9E",time:"hoy, 7:12",
+  subject:"⚠️ Tu cuenta será BLOQUEADA en 24 horas",
+  blocks:["Estimado cliente:","Detectamos actividad inusual. Si no verificas tus datos en las próximas 24 horas, tu cuenta será cancelada.","Para confirmar tu identidad ingresa tu número de tarjeta y tu NIP."],
+  link:{label:"Verificar mi cuenta",url:"http://bancon0va-seguridad.com/login"}},
+ flags:{from:"El dominio usa un cero en lugar de «o» y no es el del banco.",b1:"Crea urgencia y miedo para que actúes sin pensar.",b2:"Ningún banco te pide tu NIP por correo.",link:"El enlace lleva a un dominio falso y sin https."},
+ explain:"Es phishing: dominio falso, amenaza con plazo, pide datos secretos y enlace a un sitio impostor."},
+{lvl:1,type:"inbox",phish:true,q:"Revisa este correo. ¿Es legítimo o es phishing?",
+ mail:{name:"PaqueExpress",addr:"avisos@paquexpress-envios.info",color:"#C4561A",time:"hoy, 9:40",
+  subject:"Tu paquete no pudo ser entregado",
+  blocks:["Hola, tu paquete #MX48213 está retenido por falta de pago de $18.50 de envío.","Si no pagas hoy, el paquete será devuelto al remitente."],
+  link:{label:"Pagar y reprogramar",url:"https://paquexpress-envios.info/pago"}},
+ flags:{from:"Dominio raro (.info) que no corresponde a una paquetería oficial.",b0:"Cobro pequeño e inesperado: el truco es que parezca poco dinero para que des tu tarjeta.",b1:"Urgencia: «si no pagas hoy».",link:"El pago se hace en un sitio que no es oficial."},
+ explain:"Es phishing: el objetivo es que metas tu tarjeta en un sitio falso por un «cobro» mínimo."},
+{lvl:1,type:"inbox",phish:false,q:"Revisa este correo. ¿Es legítimo o es phishing?",
+ mail:{name:"Coordinación Académica",addr:"coordinacion@colegionova.edu.mx",color:"#0E8F7A",time:"ayer, 18:05",
+  subject:"Calendario de exámenes del segundo parcial",
+  blocks:["Hola, grupo 10°B:","Les compartimos el calendario de exámenes del segundo parcial. También está publicado en la plataforma escolar.","Cualquier duda, pregunten a su tutor."],
+  link:{label:"Ver calendario",url:"https://colegionova.edu.mx/calendario"}},
+ flags:{},
+ explain:"Es legítimo: dominio institucional, sin urgencia, no pide datos y el enlace lleva al mismo dominio de la escuela."},
+{lvl:1,type:"inbox",phish:true,q:"Revisa este correo. ¿Es legítimo o es phishing?",
+ mail:{name:"InstaFoto",addr:"no-reply@instafoto-premios.net",color:"#C2185B",time:"hoy, 12:31",
+  subject:"🎉 ¡Ganaste un celular nuevo!",
+  blocks:["Fuiste seleccionado entre millones de usuarios para recibir un premio exclusivo.","Sólo paga $99 de envío e ingresa tu usuario y contraseña de InstaFoto para reclamarlo."],
+  link:{label:"Reclamar premio",url:"http://instafoto-premios.net/reclamar"}},
+ flags:{from:"Dominio de «premios» que no es el oficial de la red social.",b0:"Demasiado bueno para ser verdad: no participaste en nada.",b1:"Pide tu contraseña y dinero: doble robo.",link:"Enlace a un sitio falso y sin https."},
+ explain:"Es phishing: premio inesperado, pide contraseña y pago, dominio falso."},
+{lvl:1,type:"inbox",phish:false,q:"Revisa este correo. ¿Es legítimo o es phishing?",
+ mail:{name:"Streamix",addr:"info@streamix.com",color:"#6A3FC4",time:"lun, 10:02",
+  subject:"Tu recibo de octubre",
+  blocks:["Hola, Daniela. Gracias por ser parte de Streamix.","Tu pago mensual se procesó correctamente. No necesitas hacer nada.","Puedes revisar tus pagos entrando directamente a la app."],
+  link:{label:"Centro de ayuda",url:"https://help.streamix.com"}},
+ flags:{},
+ explain:"Es legítimo: te llama por tu nombre, no pide datos ni pone prisa, y el enlace es un subdominio del sitio oficial (help.streamix.com)."},
+{lvl:1,type:"inbox",phish:true,q:"Revisa este correo. ¿Es legítimo o es phishing?",
+ mail:{name:"Prof. Ramírez",addr:"prof.ramirez.colegionova@gmail.com",color:"#44506B",time:"hoy, 8:15",
+  subject:"Urgente, necesito un favor",
+  blocks:["¿Estás disponible? Estoy en junta y no puedo hablar.","Necesito que compres 3 tarjetas de regalo de $500 y me mandes los códigos por aquí. Te lo pago mañana.","No le digas a nadie, es sorpresa para la dirección."]},
+ flags:{from:"Un maestro usaría su correo de la escuela, no uno gratuito con el nombre de la escuela.",b1:"Tarjetas de regalo: el pago favorito de los estafadores porque no se puede rastrear.",b2:"Te pide secreto para que nadie te advierta."},
+ explain:"Es phishing por suplantación: se hace pasar por alguien de confianza, pide dinero en tarjetas de regalo y exige secreto."},
+{lvl:1,type:"inbox",phish:true,q:"Revisa este correo. ¿Es legítimo o es phishing?",
+ mail:{name:"Seguridad NubeMail",addr:"alerta@nubemail-verify.co",color:"#B3261E",time:"hoy, 3:47",
+  subject:"Alguien inició sesión en tu cuenta",
+  blocks:["Detectamos un inicio de sesión desde otro país en tu cuenta.","Si no fuiste tú, cambia tu contraseña de inmediato con el enlace de abajo y revisa el reporte adjunto."],
+  link:{label:"Cambiar contraseña",url:"http://nubemail-verify.co/cambiar-clave"},
+  attach:"reporte_seguridad.zip"},
+ flags:{from:"Dominio falso «nubemail-verify.co».",link:"Para cambiar tu contraseña, entra tú mismo al sitio oficial, nunca por un enlace de un correo así.",attach:"Un .zip inesperado puede traer malware."},
+ explain:"Es phishing: usa el miedo a un hackeo real para robarte la contraseña o instalar malware con el adjunto."},
+
+/* ===== Sector 3: Contraseñas y cuentas ===== */
+{lvl:2,type:"create",fixed:true,q:"Crea una contraseña fuerte que cumpla todos los requisitos.",
+ explain:"Las mejores contraseñas son largas. Una frase de varias palabras al azar con números y símbolos es fuerte y fácil de recordar."},
+{lvl:2,type:"order",q:"Ordena estas contraseñas de la MÁS DÉBIL a la MÁS FUERTE.",
+ items:["123456","maria2010","M4r1a2010!","nube-tambor-limon-piano-7"],
+ explain:"La longitud es lo que más pesa. Cambiar letras por números (M4r1a) ayuda poco: los programas de ataque ya prueban esos cambios."},
+{lvl:2,type:"mc",q:"¿Cuál es la mejor práctica con tus contraseñas?",
+ opts:["Usar una contraseña distinta en cada cuenta y guardarlas en un gestor de contraseñas","Usar la misma contraseña fuerte en todas tus cuentas","Anotarlas en un papel pegado a la computadora","Usar la misma contraseña cambiando una letra en cada sitio"],ans:0,
+ explain:"Si un sitio se filtra, los atacantes prueban esa contraseña en todos lados. Una distinta por cuenta evita el efecto dominó."},
+{lvl:2,type:"mc",q:"Te llega por SMS un código de verificación de 6 dígitos que tú NO pediste. ¿Qué significa probablemente?",
+ opts:["Alguien tiene tu contraseña e intenta entrar; el segundo paso lo detuvo. Cambia tu contraseña.","Ganaste un premio de la compañía","Tu celular tiene un virus","Es un error del sistema y siempre se puede ignorar"],ans:0,
+ explain:"Ese código prueba que alguien pasó la contraseña. Cambiarla cierra la puerta. Y nunca compartas ese código con nadie."},
+{lvl:2,type:"mc",q:"¿Qué hace más resistente a una contraseña contra un ataque de fuerza bruta?",
+ opts:["La longitud","Usar tu fecha de nacimiento","Que sea una palabra del diccionario","Que tus amigos la puedan adivinar si la olvidas"],ans:0,
+ explain:"Cada carácter extra multiplica las combinaciones que un programa tiene que probar."},
+
+/* ===== Sector 4: Arsenal del atacante ===== */
+{lvl:3,type:"match",q:"Une cada tipo de malware con lo que hace. Toca uno de la izquierda y luego su descripción.",
+ left:["Ransomware","Troyano","Spyware","Keylogger","Gusano"],
+ right:["Cifra tus archivos y pide un pago para devolverlos","Se disfraza de programa útil para meterse en tu equipo","Espía en secreto lo que haces y lo envía a alguien más","Registra cada tecla que presionas, incluidas contraseñas","Se copia solo de un equipo a otro a través de la red"],
+ explain:"Conocer cómo actúa cada uno ayuda a reconocer las señales: archivos bloqueados, programas «gratis» sospechosos, lentitud o actividad extraña."},
+{lvl:3,type:"match",q:"Une cada engaño con su descripción. Toca uno de la izquierda y luego su descripción.",
+ left:["Phishing","Smishing","Vishing","Suplantación","Pretexting"],
+ right:["Correo falso que imita a una empresa para robar datos","El mismo engaño, pero por SMS","El mismo engaño, pero por llamada telefónica","Crear una cuenta haciéndose pasar por otra persona","Inventar una historia creíble para que confíes y des información"],
+ explain:"Todos son ingeniería social: cambia el canal, pero el truco es el mismo, engañarte a ti."},
+{lvl:3,type:"match",q:"Une cada ataque con su descripción. Toca uno de la izquierda y luego su descripción.",
+ left:["DDoS","Intermediario","Fuerza bruta","SIM swapping","Botnet"],
+ right:["Saturar un sitio con millones de peticiones para tumbarlo","Interceptar la comunicación entre dos partes, por ejemplo en un Wi-Fi público","Probar millones de contraseñas hasta atinar","Convencer a la compañía telefónica de pasar tu número a otro chip","Red de equipos infectados que alguien controla a distancia"],
+ explain:"Muchos de estos ataques usan equipos de personas comunes sin que lo sepan. Proteger tu dispositivo también protege a otros."},
+
+/* ===== Sector 5: Enlaces y redes ===== */
+{lvl:4,type:"url",q:"El sitio oficial de BancoNova es banconova.com.mx. ¿Cuál de estos enlaces SÍ lleva al sitio real?",
+ opts:["https://banconova.com.mx.acceso-seguro.net/login","https://www.banconova.com.mx/login","https://banc0nova.com.mx/login","https://banconova-mx.com/login"],ans:1,
+ explain:"Lee el dominio justo antes de la primera «/». En la opción 1 el dominio real es acceso-seguro.net; en las otras hay un cero o un guion añadido."},
+{lvl:4,type:"url",q:"¿Cuál de estas direcciones pertenece realmente a streamix.com?",
+ opts:["https://login.streamix.com","https://streamix.com-cuenta.app","https://streamix.co","https://streamixx.com"],ans:0,
+ explain:"login.streamix.com es un subdominio del sitio oficial. Las demás son dominios distintos que sólo se parecen."},
+{lvl:4,type:"mc",q:"Estás en una plaza con Wi-Fi gratis llamada «Plaza_Free_WiFi», sin contraseña. ¿Qué es lo más seguro?",
+ opts:["Navegar sin problema, pero usar tus datos móviles para entrar al banco o a cuentas importantes","Entrar al banco con tranquilidad, la red es de la plaza","Aceptar cualquier certificado o aviso que aparezca para que cargue","Desactivar el antivirus para que la conexión sea más rápida"],ans:0,
+ explain:"En una red abierta cualquiera puede crear una red falsa con el mismo nombre e intentar ver tu tráfico."},
+{lvl:4,type:"mc",q:"En un parquímetro ves una calcomanía con un código QR pegada encima del original. ¿Qué haces?",
+ opts:["Desconfío: puede llevar a un sitio falso para robar datos de pago. Pago con la app o el método oficial","Lo escaneo: los QR siempre son seguros","Lo escaneo y pongo mi tarjeta rápido para no perder tiempo","Le tomo foto y lo comparto en mis redes"],ans:0,
+ explain:"Un QR es sólo un enlace escondido. Pegar uno falso encima del real es una estafa común."},
+{lvl:4,type:"mc",q:"Una app de linterna te pide acceso a tus contactos, micrófono y ubicación. ¿Qué indica?",
+ opts:["Pide más permisos de los que necesita: señal de alerta, mejor no instalarla","Es normal, todas las apps piden eso","Que la linterna será más brillante","Que la app es premium"],ans:0,
+ explain:"Revisa siempre si los permisos tienen sentido con lo que hace la app. Una linterna no necesita tus contactos."},
+
+/* ===== Sector 6: Situaciones reales ===== */
+{lvl:5,type:"chat",q:"¿Qué haces?",
+ chat:{who:"Sofi 💜",sub:"en línea",color:"#8E44AD",msgs:[["Holaaa",'16:02'],["Oye, te llegó un código de 6 dígitos por SMS por error 😅 me lo pasas? es que estoy cambiando de cel 🙏",'16:02']]},
+ opts:["No lo comparto: con ese código pueden robar mi cuenta. Le llamo a Sofi para confirmar que es ella","Se lo paso, es mi amiga","Se lo paso sólo si me lo pide otra vez","Lo publico en mis estados para que ella lo vea"],ans:0,
+ explain:"Así roban cuentas de mensajería: la cuenta de Sofi probablemente ya fue robada y ahora van por la tuya. El código es tuyo y nunca se comparte."},
+{lvl:5,type:"chat",q:"¿Qué es lo mejor que puedes hacer?",
+ chat:{who:"Alex",sub:"lo conociste en línea hace dos semanas",color:"#44506B",msgs:[["Tengo tus fotos.",'22:41'],["Si no me mandas $2,000 o más fotos, las publico y se las mando a tus contactos.",'22:41']]},
+ opts:["No pagar ni mandar nada más, guardar capturas como evidencia, bloquear, decírselo a un adulto de confianza y denunciar","Pagar para que lo borre","Mandar lo que pide para que ya no insista","No decirle a nadie por vergüenza y esperar"],ans:0,
+ explain:"Esto se llama sextorsión. Pagar o mandar más no lo detiene: casi siempre piden más. No es tu culpa. Guardar evidencia y pedir ayuda a un adulto de confianza es lo que funciona; también se puede denunciar ante la Policía Cibernética."},
+{lvl:5,type:"chat",q:"¿Qué es esto?",
+ chat:{who:"Recluta Digital ✅",sub:"cuenta de empresa",color:"#0E8F7A",msgs:[["¡Hola! Buscamos jóvenes para trabajar desde casa 💸",'11:10'],["Ganas $3,000 al día sólo dando «me gusta» a videos. Para empezar deposita $300 de inscripción.",'11:11']]},
+ opts:["Una estafa: ningún trabajo real te cobra por empezar y el pago prometido es irreal","Una buena oportunidad si la cuenta tiene palomita","Un trabajo normal para estudiantes","Algo seguro si la plática es amable"],ans:0,
+ explain:"Pedir dinero para «inscribirte» y prometer ganancias fáciles son señales clásicas de fraude. Una palomita o un perfil bonito no prueban nada."},
+{lvl:5,type:"chat",q:"En el grupo del salón están compartiendo memes para burlarse de un compañero. ¿Qué haces?",
+ chat:{who:"10°B 📚",sub:"32 participantes",color:"#C4561A",msgs:[["jajaja miren a este 🤣🤣",'19:20'],["[imagen editada de un compañero]",'19:20'],["mándenlo a los otros grupos",'19:21']]},
+ opts:["No lo reenvío, guardo evidencia y aviso a un adulto o maestro de confianza; puedo apoyar a mi compañero","Lo reenvío porque todos lo están haciendo","Me salgo del grupo sin decir nada nunca","Agrego más memes para no quedar mal"],ans:0,
+ explain:"Reenviar convierte a cualquiera en parte del ciberacoso. Guardar evidencia y avisar ayuda a detenerlo."},
+{lvl:5,type:"call",q:"Te llaman y dicen esto. ¿Qué haces?",
+ chat:{who:"Número desconocido",sub:"llamada entrante",quote:"Somos del área de seguridad de tu banco. Detectamos un cargo raro. Para cancelarlo, dime el código que te acaba de llegar por SMS."},
+ opts:["Cuelgo y llamo yo al número oficial que viene en la tarjeta o la app","Doy el código, suena muy profesional","Doy sólo la mitad del código","Le pido que me llame en una hora y ahí se lo doy"],ans:0,
+ explain:"Esto es vishing. Ningún banco pide códigos de verificación por teléfono. Cuelga y llama tú al número oficial."},
+{lvl:5,type:"chat",q:"¿Qué riesgo tiene esto?",
+ chat:{who:"Gamers MX 🎮",sub:"comentario en un video",color:"#2F80ED",msgs:[["🔥 BlockCraft PREMIUM GRATIS 🔥 todo desbloqueado",'20:05'],["descarguen el instalador aquí: blockcraft-free-full.exe (desactiven el antivirus para que funcione)",'20:05']]},
+ opts:["Es muy probable que sea un troyano: nadie legítimo te pide desactivar el antivirus","Ninguno, si muchos lo comentan es seguro","Sólo que el juego vaya lento","Ninguno, los .exe siempre son seguros"],ans:0,
+ explain:"Los juegos «pirata» son una de las formas más comunes de repartir troyanos. Pedir desactivar el antivirus es la señal más clara."}
+];
+var N=PICK.reduce(function(a,b){return a+b;},0);
+var MAXPTS=N*10;
+
+/* ---------- utilidades ---------- */
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function inline(s){return esc(s).replace(/`([^`]+)`/g,function(_,c){return "<code>"+c+"</code>";});}
+function normText(s){return String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();}
+function fmtTime(ms){var s=Math.max(0,Math.ceil(ms/1000)),m=Math.floor(s/60);s%=60;return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;}
+function fmtLong(ms){var s=Math.max(0,Math.floor(ms/1000)),m=Math.floor(s/60);s%=60;return m+" min "+s+" s";}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function range(n){var r=[];for(var i=0;i<n;i++)r.push(i);return r;}
+function initials(n){return n.replace(/[^\p{L}\s]/gu,"").trim().split(/\s+/).slice(0,2).map(function(w){return w[0];}).join("").toUpperCase()||"?";}
+
+function buildPlan(){
+  var plan=[];
+  PICK.forEach(function(k,l){
+    var fixed=[],rest=[];
+    BANK.forEach(function(q,i){if(q.lvl===l)(q.fixed?fixed:rest).push(i);});
+    var ids=fixed.concat(shuffle(rest)).slice(0,k);
+    shuffle(ids).forEach(function(id){
+      var q=BANK[id],e={id:id};
+      if(q.opts) e.perm=shuffle(range(q.opts.length));
+      if(q.type==="order"){var p;do{p=shuffle(range(q.items.length));}while(p.every(function(v,x){return v===x;}));e.perm=p;}
+      if(q.type==="match") e.perm=shuffle(range(q.right.length));
+      plan.push(e);
+    });
+  });
+  return plan;
+}
+function Qi(i){return BANK[S.plan[i].id];}
+function versionCode(){var h=7;S.plan.forEach(function(e){h=(h*31+e.id+1+(e.perm?e.perm[0]*7:0))%1679616;});return ("000"+h.toString(36).toUpperCase()).slice(-4);}
+
+/* ---------- almacenamiento ---------- */
+var KEY="escudo-v1",NAMES="escudo-names";
+function load(){try{var r=localStorage.getItem(KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function bumpName(n){
+  var k=normText(n),map={};
+  try{map=JSON.parse(localStorage.getItem(NAMES)||"{}")||{};}catch(e){}
+  map[k]=(map[k]||0)+1;
+  try{localStorage.setItem(NAMES,JSON.stringify(map));}catch(e){}
+  return map[k];
+}
+function newCur(){return {tries:0,done:false,ok:false,pts:0,sel:[],flags:[],stage:0,pairs:{},pick:null,pw:"",msg:"",mt:"",shown:0,deadline:0,timeout:false};}
+
+var S=load(); if(S&&!S.plan) S=null;
+var app=document.getElementById("app"), resetArmed=false, toastTimer=null;
+
+function totalPts(){return (S.res||[]).reduce(function(a,r){return a+(r?r.pts:0);},0);}
+
+/* ---------- contraseña ---------- */
+function pwCriteria(pw){
+  var n=normText(pw), nameParts=normText(S.name).split(" ").filter(function(w){return w.length>=3;});
+  return [
+    ["14 caracteres o más",pw.length>=14],
+    ["Mayúsculas y minúsculas",/[a-záéíóúñ]/.test(pw)&&/[A-ZÁÉÍÓÚÑ]/.test(pw)],
+    ["Al menos un número",/\d/.test(pw)],
+    ["Al menos un símbolo (por ejemplo - _ ! ? #)",/[^A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\s]/.test(pw)],
+    ["No incluye tu nombre ni apellidos",pw.length>0&&!nameParts.some(function(w){return n.indexOf(w)>=0;})],
+    ["No incluye un año ni patrones comunes (123, qwerty, password…)",pw.length>0&&!/(19|20)\d\d|123|abc|qwerty|password|contrasena|asdf|1111|0000/.test(n)]
+  ];
+}
+
+/* ---------- pantallas ---------- */
+function render(){
+  if(!S||!S.start) return renderIntro();
+  if(S.idx>=N) return renderResults();
+  renderGame();
+}
+
+function renderIntro(){
+  app.innerHTML=
+  '<main class="intro"><div>'+
+   '<h1><small>Misión de seguridad digital</small>Operación Escudo</h1>'+
+   '<p class="lead">Hoy formas parte del equipo de ciberseguridad de la escuela. Revisa correos, detecta enlaces falsos, reconoce ataques y decide qué hacer en situaciones reales antes de que alguien caiga.</p>'+
+   '<ul class="rules">'+
+    '<li>Son '+N+' misiones en 6 sectores. Cada misión tiene tiempo límite.</li>'+
+    '<li>Algunas misiones tienen un solo intento; otras, dos o tres. Mientras antes aciertes, más puntos.</li>'+
+    '<li>Cada agente recibe una versión distinta de la operación.</li>'+
+    '<li>No salgas de esta pestaña: quedará registrado en tu informe.</li>'+
+    '<li>Al terminar, toma una captura de pantalla de tu informe final.</li>'+
+   '</ul>'+
+   '<div class="form">'+
+    '<label>Nombre completo<input id="fname" autocomplete="name" maxlength="60" placeholder="Nombre y apellidos"></label>'+
+    '<label>Grupo<input id="fgroup" maxlength="20" placeholder="Por ejemplo: 10°B"></label>'+
+    '<p class="err" id="ferr"></p>'+
+    '<div><button class="btn" data-act="start">Iniciar operación</button></div>'+
+   '</div></div>'+
+   '<div class="radarwrap" aria-hidden="true"><div class="radar">'+
+    '<span class="blip" style="left:22%;top:30%"></span><span class="blip" style="left:68%;top:62%"></span>'+
+    '<span class="blip s" style="left:60%;top:24%"></span><span class="blip" style="left:34%;top:72%"></span>'+
+    '<div class="core"><span>'+N+' amenazas</span></div>'+
+   '</div></div>'+
+  '</main>';
+  document.getElementById("fname").focus();
+  app.querySelectorAll("input").forEach(function(i){i.addEventListener("keydown",function(e){if(e.key==="Enter")start();});});
+}
+
+function start(){
+  var name=document.getElementById("fname").value.trim().replace(/\s+/g," ");
+  var group=document.getElementById("fgroup").value.trim();
+  var err=document.getElementById("ferr");
+  if(name.split(" ").length<2||name.length<5){err.textContent="Escribe tu nombre y al menos un apellido.";return;}
+  if(!group){err.textContent="Escribe tu grupo.";return;}
+  S={name:name,group:group,idx:0,res:[],start:Date.now(),end:0,blurs:0,pastes:0,attemptNo:bumpName(name),plan:buildPlan(),cur:newCur()};
+  save();render();window.scrollTo(0,0);
+}
+
+function hud(){
+  var done=S.res.length, pts=totalPts(), pct=done?Math.round(pts/(done*10)*100):100;
+  var C=2*Math.PI*22, off=C*(1-pct/100), col=pct>=75?"var(--safe)":pct>=50?"var(--warn)":"var(--threat)";
+  var segs="";
+  for(var i=0;i<N;i++){
+    var r=S.res[i],cls="seg";
+    if(r) cls+= r.pts>=8?" okf":r.pts>0?" okp":" fail"; else if(i===S.idx) cls+=" cur";
+    segs+='<span class="'+cls+'"></span>';
+  }
+  return '<header class="bar"><div class="bar-in">'+
+   '<svg class="ring" viewBox="0 0 52 52" role="img" aria-label="Escudo al '+pct+'%"><circle class="bgc" cx="26" cy="26" r="22"/><circle class="fgc" cx="26" cy="26" r="22" style="stroke:'+col+';stroke-dasharray:'+C.toFixed(1)+';stroke-dashoffset:'+off.toFixed(1)+'"/><text x="26" y="31" text-anchor="middle">'+pct+'</text></svg>'+
+   '<div class="who"><b>'+esc(S.name)+'</b><span>Escudo al '+pct+'%, grupo '+esc(S.group)+'</span></div>'+
+   '<div class="hstat"><b>'+pts+'</b><span>puntos</span></div>'+
+   '<div class="hstat"><b id="clock">'+fmtTime(Date.now()-S.start)+'</b><span>tiempo total</span></div>'+
+  '</div><div class="track" aria-hidden="true">'+segs+'</div></header>';
+}
+
+function optsHTML(q,c,isUrl){
+  var perm=S.plan[S.idx].perm, h='<div class="opts">';
+  perm.forEach(function(k){
+    var cl="opt"+(isUrl?" url":"");
+    if(c.done){ if(k===q.ans) cl+=" right"; else if(c.sel[0]===k) cl+=" wrong"; }
+    else if(c.sel[0]===k) cl+=" sel";
+    h+='<button class="'+cl+'" data-act="pick" data-i="'+k+'"'+(c.done?" disabled":"")+'>'+(isUrl?esc(q.opts[k]):inline(q.opts[k]))+'</button>';
+  });
+  return h+'</div>';
+}
+
+function mailHTML(q,c){
+  var m=q.mail, interactive=c.stage===1&&!c.done, reveal=c.done;
+  function el(id,inner,tag,extra){
+    var cl="fl"+(extra?" "+extra:"");
+    if(interactive){cl+=" on";if(c.flags.indexOf(id)>=0)cl+=" pick";}
+    if(reveal){ if(q.flags[id]) cl+=" isflag"; else if(c.flags.indexOf(id)>=0) cl+=" falsepick"; }
+    var attrs=interactive?' role="button" tabindex="0" data-act="flag" data-f="'+id+'" aria-pressed="'+(c.flags.indexOf(id)>=0)+'"':'';
+    return '<'+tag+' class="'+cl+'"'+attrs+'>'+inner+'</'+tag+'>';
+  }
+  var h='<div class="mail"><div class="mtop"><span>Bandeja de entrada</span><span>'+esc(m.time)+'</span></div>'+
+   '<div class="mhead"><div class="av" style="background:'+m.color+'">'+esc(initials(m.name))+'</div><div><div class="mname">'+esc(m.name)+'</div>'+
+   el("from",esc(m.addr),"div","maddr")+'</div></div>'+
+   el("subject",esc(m.subject),"h3","msubj")+'<div class="mbody">';
+  m.blocks.forEach(function(b,i){h+=el("b"+i,esc(b),"p");});
+  if(m.link) h+=el("link",'<span class="mbtn">'+esc(m.link.label)+'</span><span class="murl">El enlace lleva a: '+esc(m.link.url)+'</span>',"div","mlink");
+  if(m.attach) h+='<div>'+el("attach","📎 "+esc(m.attach),"span","matt")+'</div>';
+  return h+'</div></div>';
+}
+
+function chatHTML(q){
+  var ch=q.chat;
+  if(q.type==="call"){
+    return '<div class="chat"><div class="callcard"><div class="av">📞</div><b>'+esc(ch.who)+'</b><small>'+esc(ch.sub)+'</small><p class="quote">«'+esc(ch.quote)+'»</p></div></div>';
+  }
+  var h='<div class="chat"><div class="chead"><div class="av" style="background:'+ch.color+'">'+esc(initials(ch.who))+'</div><div><b>'+esc(ch.who)+'</b><small>'+esc(ch.sub)+'</small></div></div><div class="cbody">';
+  ch.msgs.forEach(function(m){h+='<div class="bub">'+esc(m[0])+'<time>'+m[1]+'</time></div>';});
+  return h+'</div></div>';
+}
+
+function renderGame(){
+  var q=Qi(S.idx), c=S.cur, body="";
+  if(!c.shown){c.shown=Date.now();c.deadline=c.shown+LIMIT[q.type]*1000;save();}
+
+  if(q.type==="mc") body=optsHTML(q,c,false);
+  if(q.type==="url") body=optsHTML(q,c,true);
+  if(q.type==="chat"||q.type==="call") body=chatHTML(q)+optsHTML(q,c,false);
+
+  if(q.type==="inbox"){
+    body=mailHTML(q,c);
+    if(!c.done&&c.stage===0){
+      body+='<div class="decide"><button class="dbtn safe" data-act="decide" data-i="0"><span>✅</span>Es legítimo</button><button class="dbtn threat" data-act="decide" data-i="1"><span>🎣</span>Es phishing</button></div>';
+    }
+    if(!c.done&&c.stage===1){
+      body='<p class="stage"><b>Bien detectado.</b> Ahora toca en el correo todas las señales de alerta que encuentres y confirma. Cada señal correcta suma; cada una equivocada resta.</p>'+body;
+    }
+  }
+
+  if(q.type==="order"){
+    var perm=S.plan[S.idx].perm;
+    body='<p class="olabel">Tu orden</p><ol class="olist">';
+    if(!c.sel.length) body+='<li class="empty">Toca las contraseñas de abajo, empezando por la más débil.</li>';
+    c.sel.forEach(function(ix){body+='<li><button class="oitem" data-act="unpick" data-i="'+ix+'"'+(c.done?" disabled":"")+'>'+esc(q.items[ix])+'</button></li>';});
+    body+='</ol><div class="scale"><span>↑ más débil</span><span>más fuerte ↓</span></div><div class="pool">';
+    var left=perm.filter(function(ix){return c.sel.indexOf(ix)<0;});
+    if(!left.length&&!c.done) body+='<p class="empty">Ya las ordenaste todas. Toca una de tu lista para regresarla.</p>';
+    left.forEach(function(ix){body+='<button class="oitem" data-act="opick" data-i="'+ix+'"'+(c.done?" disabled":"")+'>'+esc(q.items[ix])+'</button>';});
+    body+='</div>';
+  }
+
+  if(q.type==="match"){
+    var mp=S.plan[S.idx].perm, used={};
+    Object.keys(c.pairs).forEach(function(l){used[c.pairs[l]]=+l;});
+    body='<div class="match"><div class="mcol"><p>Ataque</p>';
+    q.left.forEach(function(t,i){
+      var paired=c.pairs[i]!=null, cl="mi att"+(c.pick===i?" sel":"");
+      if(c.done) cl+= c.pairs[i]===i?" good":" bad";
+      body+='<button class="'+cl+'" data-act="mleft" data-i="'+i+'"'+(c.done?" disabled":"")+'><span class="dot" style="'+(paired?"background:"+PAIRC[i]+";border-color:"+PAIRC[i]:"")+'"></span>'+esc(t)+'</button>';
+    });
+    body+='</div><div class="mcol"><p>Descripción</p>';
+    mp.forEach(function(k){
+      var owner=used[k], cl="mi"+(c.done?(owner===k?" good":" bad"):"");
+      body+='<button class="'+cl+'" data-act="mright" data-i="'+k+'"'+(c.done?" disabled":"")+'><span class="dot" style="'+(owner!=null?"background:"+PAIRC[owner]+";border-color:"+PAIRC[owner]:"")+'"></span>'+esc(q.right[k])+'</button>';
+    });
+    body+='</div></div>';
+  }
+
+  if(q.type==="create"){
+    body='<p class="warnnote">No uses una contraseña real que ya tengas. Inventa una nueva sólo para este ejercicio.</p>'+
+     '<label class="olabel" for="pw">Tu nueva contraseña</label>'+
+     '<input id="pw" class="pwin" autocomplete="off" autocapitalize="off" spellcheck="false" value="'+esc(c.pw)+'"'+(c.done?" disabled":"")+'>'+
+     '<div class="meter"><i id="pwbar"></i></div><p class="mlabel" id="pwlabel"></p><ul class="crit" id="crit"></ul>';
+  }
+
+  var fb="";
+  if(c.msg){
+    fb='<div class="fb '+c.mt+'"><div>'+inline(c.msg)+'</div>';
+    if(q.type==="inbox"&&c.done&&Object.keys(q.flags).length){
+      fb+='<ul class="notes">';Object.keys(q.flags).forEach(function(k){fb+='<li>'+esc(q.flags[k])+'</li>';});fb+='</ul>';
+    }
+    if(q.type==="order"&&c.done&&!c.ok) fb+='<p style="margin:.5em 0 0">Orden correcto: '+q.items.map(esc).join(" → ")+'</p>';
+    fb+='</div>';
+  }
+
+  var maxT=TRIES[q.type], left=maxT-c.tries, dots="", actions="";
+  for(var i=0;i<maxT;i++) dots+= i<left?"●":"○";
+  if(c.done) actions='<button class="btn" data-act="next">'+(S.idx===N-1?"Ver mi informe":"Siguiente misión")+'</button>';
+  else if(q.type==="inbox"){ if(c.stage===1) actions='<button class="btn" data-act="submit">Confirmar señales</button>'; }
+  else actions='<button class="btn" data-act="submit">'+(q.type==="create"?"Guardar contraseña":"Confirmar")+'</button>'+(maxT>1?'<p class="tries">Intentos <span class="dots" aria-label="'+left+' intentos restantes">'+dots+'</span></p>':'<p class="tries">Un solo intento</p>');
+  if(q.type==="inbox"&&!c.done&&c.stage===0) actions='<p class="tries" style="margin-left:0">Un solo intento: decide con cuidado.</p>';
+
+  app.innerHTML=hud()+
+  '<main class="wrap"><section class="mission" aria-live="polite">'+
+   '<div class="mtopline"><div><p class="sector">Sector '+(q.lvl+1)+' de '+LEVELS.length+': '+LEVELS[q.lvl]+'</p><p class="mn">Misión '+(S.idx+1)+' de '+N+'</p></div>'+
+   (c.done?'':'<p class="cd" id="cd"><b>'+fmtTime(c.deadline-Date.now())+'</b><span>restante</span></p>')+'</div>'+
+   (c.done?'<div style="height:14px"></div>':'<div class="cdbar" id="cdbar"><i style="width:'+cdPct()+'%"></i></div>')+
+   '<h2>'+inline(q.q)+'</h2>'+body+fb+'<div class="actions">'+actions+'</div>'+
+  '</section></main>';
+
+  if(q.type==="create"){
+    var inp=document.getElementById("pw");
+    updatePw();
+    inp.addEventListener("input",function(){c.pw=inp.value;updatePw();save();});
+    inp.addEventListener("keydown",function(e){if(e.key==="Enter")submit();});
+    if(!c.done) inp.focus();
+  }
+  if(c.done){var nb=app.querySelector('[data-act="next"]');if(nb)nb.focus();}
+}
+
+function updatePw(){
+  var c=S.cur, cr=pwCriteria(c.pw), met=cr.filter(function(x){return x[1];}).length;
+  var pct=Math.round(met/cr.length*100), col=met<=2?"var(--threat)":met<=4?"var(--warn)":"var(--safe)";
+  var lab=!c.pw?"Escribe para medir la fuerza":met<=2?"Débil":met<=4?"Regular":met<6?"Casi lista":"Fuerte";
+  var bar=document.getElementById("pwbar"); if(!bar) return;
+  bar.style.width=(c.pw?Math.max(8,pct):0)+"%";bar.style.background=col;
+  document.getElementById("pwlabel").textContent=lab;
+  document.getElementById("crit").innerHTML=cr.map(function(x){return '<li class="'+(x[1]?"ok":"")+'">'+esc(x[0])+'</li>';}).join("");
+}
+
+function cdPct(){var c=S.cur,q=Qi(S.idx);return Math.max(0,Math.min(100,(c.deadline-Date.now())/(LIMIT[q.type]*10)));}
+function tickCountdown(){
+  if(!S||!S.start||S.idx>=N) return;
+  var c=S.cur; if(c.done||!c.deadline) return;
+  var left=c.deadline-Date.now();
+  if(left<=0){timeUp();return;}
+  var cd=document.getElementById("cd"),bar=document.getElementById("cdbar");
+  if(cd){cd.querySelector("b").textContent=fmtTime(left);cd.classList.toggle("low",left<10000);}
+  if(bar){bar.firstChild.style.width=cdPct()+"%";bar.classList.toggle("low",left<10000);}
+}
+function timeUp(){
+  var q=Qi(S.idx),c=S.cur; if(c.done) return;
+  c.timeout=true;
+  finishQ(false,0,"Se acabó el tiempo. "+q.explain);
+}
+
+function submit(){
+  var q=Qi(S.idx),c=S.cur,ok=false,msg="",frac=1;
+  if(c.done) return;
+  if(c.deadline&&Date.now()>c.deadline) return timeUp();
+  if(q.type==="mc"||q.type==="url"||q.type==="chat"||q.type==="call"){
+    if(c.sel[0]==null){c.msg="Elige una opción.";c.mt="info";return renderGame();}
+    ok=c.sel[0]===q.ans;
+  }
+  if(q.type==="order"){
+    if(c.sel.length<q.items.length){c.msg="Ordena todas las contraseñas antes de confirmar.";c.mt="info";return renderGame();}
+    ok=c.sel.every(function(v,k){return v===k;});
+  }
+  if(q.type==="match"){
+    if(Object.keys(c.pairs).length<q.left.length){c.msg="Une todos los ataques con una descripción.";c.mt="info";return renderGame();}
+    var good=q.left.filter(function(_,i){return c.pairs[i]===i;}).length;
+    ok=good===q.left.length; frac=good/q.left.length;
+    if(!ok) msg="Tienes "+good+" de "+q.left.length+" parejas correctas.";
+  }
+  if(q.type==="create"){
+    var cr=pwCriteria(c.pw), miss=cr.filter(function(x){return !x[1];});
+    if(!c.pw){c.msg="Escribe una contraseña.";c.mt="info";return renderGame();}
+    ok=!miss.length; if(!ok) msg="Todavía falta: "+miss.map(function(x){return x[0].toLowerCase();}).join("; ")+".";
+  }
+  if(q.type==="inbox"){
+    var fk=Object.keys(q.flags), hits=c.flags.filter(function(f){return q.flags[f];}).length, falses=c.flags.length-hits;
+    var extra=Math.max(0,Math.round(6*(hits-falses)/fk.length));
+    var p=4+extra;
+    return finishQ(true,p,"Detectaste el phishing (+4) y marcaste "+hits+" de "+fk.length+" señales"+(falses?" con "+falses+" marca(s) equivocada(s)":"")+" (+"+extra+"). "+q.explain);
+  }
+  c.tries++;
+  var table=SC[q.type];
+  if(ok){
+    var pts=table[c.tries-1];
+    finishQ(true,pts,"Correcto: +"+pts+" puntos. "+q.explain);
+  } else if(c.tries>=TRIES[q.type]){
+    var partial=q.type==="match"?Math.round(frac*table[c.tries-1]):0;
+    finishQ(partial>0,partial,(msg?msg+" ":"")+(partial?"Obtienes "+partial+" puntos por las correctas. ":"Se acabaron los intentos. ")+q.explain);
+  } else {
+    var rest=TRIES[q.type]-c.tries;
+    c.msg=(msg||"No es correcto.")+" Te queda"+(rest>1?"n ":" ")+rest+" intento"+(rest>1?"s":"")+".";
+    c.mt="bad";save();renderGame();
+  }
+}
+function decide(i){
+  var q=Qi(S.idx),c=S.cur; if(c.done||c.stage!==0) return;
+  if(c.deadline&&Date.now()>c.deadline) return timeUp();
+  var saysPhish=i===1;
+  c.tries=1;
+  if(saysPhish!==q.phish){
+    return finishQ(false,0,(q.phish?"Era phishing. ":"Era un correo legítimo: marcarlo como phishing también es un error, porque pierdes información real. ")+q.explain);
+  }
+  if(!q.phish) return finishQ(true,10,"Correcto: +10 puntos. "+q.explain);
+  c.stage=1;c.msg="";save();renderGame();
+}
+function finishQ(ok,pts,msg){
+  var c=S.cur,q=Qi(S.idx);
+  c.done=true;c.ok=ok;c.pts=pts;c.msg=msg;c.mt=pts>=8?"ok":pts>0?"info":"bad";
+  if(q.type==="create") c.pw="";
+  S.res[S.idx]={ok:ok,pts:pts,tries:c.tries,ms:Math.min(Date.now(),c.deadline||Date.now())-c.shown,to:!!c.timeout};
+  save();renderGame();
+}
+
+function renderResults(){
+  if(!S.end){S.end=Date.now();save();}
+  var pts=totalPts(), grade=Math.round(pts/MAXPTS*100)/10;
+  var perfect=S.res.filter(function(r){return r&&r.pts===10;}).length;
+  var timeouts=S.res.filter(function(r){return r&&r.to;}).length;
+  var rank=grade>=9?["Guardián digital","Nadie te engaña fácilmente"]:grade>=8?["Analista de seguridad","Detectas casi todas las amenazas"]:grade>=6?["Agente en formación","Vas bien, sigue practicando"]:["Recluta","Repasa las señales de alerta"];
+  var d=new Date(S.end);
+  var date=d.toLocaleDateString("es-MX",{day:"2-digit",month:"long",year:"numeric"})+", "+d.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+  var lv="";
+  LEVELS.forEach(function(name,l){
+    var got=0,max=0;S.plan.forEach(function(e,i){if(BANK[e.id].lvl===l){max+=10;got+=S.res[i]?S.res[i].pts:0;}});
+    var pc=max?Math.round(got/max*100):0;
+    lv+='<div class="lvrow"><span>'+esc(name)+'</span><span class="lm"><i style="width:'+pc+'%"></i></span><b>'+pc+'%</b></div>';
+  });
+  var chips="";
+  S.res.forEach(function(r,i){
+    var cl="tchip "+(r.pts>=8?"okf":r.pts>0?"okp":"fail");
+    chips+='<span class="'+cl+'"><b>'+(i+1)+'</b>'+(r.to?"tiempo":fmtTime(r.ms||0))+'</span>';
+  });
+  app.innerHTML=
+  '<main class="res"><section class="card">'+
+   '<p class="kicker">Informe de la Operación Escudo</p>'+
+   '<h1>'+esc(S.name)+'</h1><p class="grp">Grupo '+esc(S.group)+'. Actividad: seguridad digital.</p>'+
+   '<div class="gradebox"><span class="grade">'+grade.toFixed(1)+'<small> / 10</small></span><div class="rank"><b>'+rank[0]+'</b><span>'+rank[1]+'</span></div></div>'+
+   '<dl class="facts">'+
+    '<div><dt>Puntos</dt><dd>'+pts+' de '+MAXPTS+'</dd></div>'+
+    '<div><dt>Misiones perfectas</dt><dd>'+perfect+' de '+N+'</dd></div>'+
+    '<div><dt>Tiempo</dt><dd>'+fmtLong(S.end-S.start)+'</dd></div>'+
+    '<div><dt>Misiones sin terminar a tiempo</dt><dd>'+timeouts+'</dd></div>'+
+    '<div'+(S.blurs?' class="warn"':'')+'><dt>Salidas de la pestaña</dt><dd>'+S.blurs+'</dd></div>'+
+    '<div'+(S.pastes?' class="warn"':'')+'><dt>Intentos de pegar texto</dt><dd>'+(S.pastes||0)+'</dd></div>'+
+    '<div><dt>Intento en este equipo</dt><dd>'+S.attemptNo+'</dd></div>'+
+    '<div><dt>Versión</dt><dd class="mono">'+versionCode()+'</dd></div>'+
+    '<div><dt>Terminado</dt><dd>'+esc(date)+'</dd></div>'+
+   '</dl>'+
+   '<div class="lv">'+lv+'</div>'+
+   '<h3>Tiempo por misión</h3><p class="tleg">Verde: 8 a 10 puntos. Amarillo: puntos parciales. Rojo: sin puntos.</p>'+
+   '<div class="times">'+chips+'</div>'+
+   '<p class="shot">Toma una captura de pantalla de este informe y entrégala a tu maestro.</p>'+
+  '</section>'+
+  '<div class="after"><button class="btn ghost" data-act="reset">'+(resetArmed?"Confirmar: borrar y empezar con otro agente":"Nuevo agente")+'</button></div>'+
+  '</main>';
+}
+
+/* ---------- eventos ---------- */
+function act(b){
+  var a=b.dataset.act,c=S&&S.cur,i=+b.dataset.i;
+  if(a==="start") return start();
+  if(a==="pick"){c.sel=[i];c.msg="";save();return renderGame();}
+  if(a==="opick"){c.sel.push(i);c.msg="";save();return renderGame();}
+  if(a==="unpick"){c.sel=c.sel.filter(function(x){return x!==i;});save();return renderGame();}
+  if(a==="decide") return decide(i);
+  if(a==="flag"){var f=b.dataset.f,k=c.flags.indexOf(f);if(k>=0)c.flags.splice(k,1);else c.flags.push(f);save();return renderGame();}
+  if(a==="mleft"){
+    if(c.pairs[i]!=null&&c.pick!==i){delete c.pairs[i];c.pick=null;}
+    else c.pick=c.pick===i?null:i;
+    c.msg="";save();return renderGame();
+  }
+  if(a==="mright"){
+    Object.keys(c.pairs).forEach(function(l){if(c.pairs[l]===i)delete c.pairs[l];});
+    if(c.pick!=null){c.pairs[c.pick]=i;c.pick=null;}
+    else{c.msg="Primero toca un ataque de la izquierda.";c.mt="info";}
+    save();return renderGame();
+  }
+  if(a==="submit") return submit();
+  if(a==="next"){S.idx++;S.cur=newCur();if(S.idx>=N)S.end=Date.now();save();render();window.scrollTo(0,0);return;}
+  if(a==="reset"){
+    if(!resetArmed){resetArmed=true;return renderResults();}
+    resetArmed=false;S=null;try{localStorage.removeItem(KEY);}catch(e){}render();window.scrollTo(0,0);
+  }
+}
+app.addEventListener("click",function(e){var b=e.target.closest("[data-act]");if(!b||b.disabled)return;act(b);});
+app.addEventListener("keydown",function(e){
+  if(e.key!=="Enter"&&e.key!==" ") return;
+  var b=e.target.closest('[role="button"][data-act]'); if(!b) return;
+  e.preventDefault();act(b);
+});
+
+function toast(msg){
+  var old=document.querySelector(".toast");if(old)old.remove();
+  var t=document.createElement("div");t.className="toast";t.setAttribute("role","alert");t.textContent=msg;
+  document.body.appendChild(t);clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.remove();},4000);
+}
+["paste","drop"].forEach(function(ev){
+  app.addEventListener(ev,function(e){
+    if(!e.target.closest||!e.target.closest(".pwin")) return;
+    e.preventDefault();
+    if(S&&S.start&&S.idx<N){S.pastes=(S.pastes||0)+1;save();}
+    toast("Pegar texto está desactivado. Escribe tu contraseña a mano.");
+  },true);
+});
+document.addEventListener("visibilitychange",function(){
+  if(!S||!S.start||S.idx>=N) return;
+  if(document.hidden){S.blurs=(S.blurs||0)+1;save();}
+  else{toast("Saliste de la operación ("+S.blurs+" "+(S.blurs===1?"vez":"veces")+"). Aparecerá en tu informe.");tickCountdown();}
+});
+setInterval(function(){
+  if(!S||!S.start||S.idx>=N) return;
+  var el=document.getElementById("clock");if(el)el.textContent=fmtTime(Date.now()-S.start);
+  tickCountdown();
+},1000);
+
+render();
+})();
+</script>
+</body>
+</html>
